@@ -62,7 +62,7 @@ func getTickerState() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	roi := Roi(coinbaseTicker.Sell())
+	roi := Roi(coinbaseTicker.Sell(), balance)
 	log.Output(1, fmt.Sprintf("Bal: %f EXCH: %F SELL: %f ROI: %f\n", balance, exchangeRate, coinbaseTicker.Sell(), roi))
 	gain := exchangeRate * balance * (1 + roi)
 	return fmt.Sprintf("State:\n%s\n%s\nBalance: %.8f BTC\nROI: %.f%% Gain: %.f$", kunaTicker.String(), coinbaseTicker.String(), balance, 100*(1+roi), gain)
@@ -112,10 +112,19 @@ func WalletRateHandler(message *tbot.Message) {
 	if !ok {
 		log.Panicf("Received: %s, wrong amount", message.Data)
 	}
-	message.Reply(providers.LoadWallet(address).String())
+	wallet := providers.LoadWallet(address)
+	invested := wallet.InvestedAmount()
+	coinbaseTicker, err := providers.GetCoinbaseTicker()
+	if err != nil {
+		log.Fatal(err)
+	}
+	roi := Roi(coinbaseTicker.Sell(), invested)
+	capital := invested * (1 + roi)
+	response := fmt.Sprintf("%s\nROI: %.f%% Invested*: %.2f$ Capital*: %.2f$\n", wallet.String(), (1+roi)*100, invested, capital)
+	message.Reply(response)
 }
 
-func Roi(sellPrice float64) float64 {
+func Roi(sellPrice float64, balance float64) float64 {
 	gainFromInvestment := sellPrice * balance
 	costOfInvestment := exchangeRate * balance
 	log.Output(2, fmt.Sprintf("Gain: %f, Cost: %f", gainFromInvestment, costOfInvestment))

@@ -2,6 +2,7 @@ package providers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -11,19 +12,29 @@ import (
 
 const CoinbaseBuyURL string = "https://api.coinbase.com/v2/prices/BTC-USD/buy"
 const CoinbaseSellURL string = "https://api.coinbase.com/v2/prices/BTC-USD/sell"
+const CoinbaseSpotURL string = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
 
 func GetCoinbaseTicker() (Ticker, error) {
 	buy, err := loadData(CoinbaseBuyURL)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 	sell, err := loadData(CoinbaseSellURL)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 	now := time.Now()
 	ticker := newCoinbaseTicker(now, buy, sell)
 	return ticker, nil
+}
+
+func GetCoinbaseSpotPrice(date time.Time) float64 {
+	url := fmt.Sprintf("%s?date=%d-%d-%d", CoinbaseSpotURL, date.Year(), date.Month(), date.Day())
+	price, err := loadData(url)
+	if err != nil {
+		panic(err)
+	}
+	return price
 }
 
 type dataStruct struct {
@@ -39,7 +50,7 @@ type responseStruct struct {
 func loadData(url string) (float64, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatal("Received error", err.Error())
+		log.Panic("Received error ", err.Error())
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -52,11 +63,11 @@ func getAmount(body []byte) (float64, error) {
 	var s = new(responseStruct)
 	err := json.Unmarshal(body, &s)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 	amount, err := strconv.ParseFloat(s.Data.Amount, 64)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 	return amount, nil
 }

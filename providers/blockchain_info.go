@@ -15,7 +15,7 @@ const GetWalletHistoryURL string = "https://blockchain.info/rawaddr/"
 type Transaction struct {
 	spent  bool
 	amount int64
-	time   time.Time
+	Time   time.Time
 }
 
 func (t *Transaction) String() string {
@@ -25,7 +25,7 @@ func (t *Transaction) String() string {
 	} else {
 		spent = "📥"
 	}
-	return fmt.Sprintf("%s %s - %d", spent, t.time.Format("2006 Jan 2"), t.amount)
+	return fmt.Sprintf("%s %s - %d", spent, t.Time.Format("2006 Jan 2"), t.amount)
 }
 
 type Wallet struct {
@@ -35,11 +35,25 @@ type Wallet struct {
 }
 
 func (w *Wallet) String() string {
-	str := fmt.Sprintf("Address: %s\nBalance: %d\n", w.address, w.balance)
+	str := fmt.Sprintf("Address: %s\nBalance: %d BTC\n", w.address, w.BTC())
 	for _, t := range w.transactions {
-		str += fmt.Sprintf("%s\n", t.String())
+		str += "\n"
+		str += fmt.Sprintf("%s", t.String())
 	}
 	return str
+}
+
+func (w *Wallet) BTC() float64 {
+	return float64(w.balance) / float64(Satoshi)
+}
+
+func (w *Wallet) InvestedAmount() float64 {
+	var amount float64
+	for _, t := range w.transactions {
+		price := GetCoinbaseSpotPrice(t.Time)
+		amount += float64(t.amount) * price / float64(Satoshi)
+	}
+	return amount
 }
 
 type outTransaction struct {
@@ -59,7 +73,7 @@ func (data *infoTransaction) findAndBuildTransaction(address string) (*Transacti
 		return nil, err
 	}
 	time := time.Unix(int64(data.Time), 0)
-	return &Transaction{time: time, amount: int64(transaction.Value), spent: transaction.Spent}, nil
+	return &Transaction{Time: time, amount: int64(transaction.Value), spent: transaction.Spent}, nil
 }
 
 func (transaction *infoTransaction) findTransaction(address string) (*outTransaction, error) {
