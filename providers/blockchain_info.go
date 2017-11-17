@@ -13,9 +13,10 @@ const Satoshi float64 = 100000000
 const GetWalletHistoryURL string = "https://blockchain.info/rawaddr/"
 
 type Transaction struct {
-	spent  bool
-	amount int64
-	Time   time.Time
+	spent        bool
+	amount       int64
+	Time         time.Time
+	exchangeRate float64
 }
 
 func (t *Transaction) BTC() float64 {
@@ -29,10 +30,17 @@ func (t *Transaction) String() string {
 	} else {
 		spent = "📥"
 	}
-	return fmt.Sprintf("%s %s - %.8f BTC | %.f $", spent, t.Time.Format("2006 Jan 2"), t.BTC(), t.LoadPrice())
+	return fmt.Sprintf("%s %s - %.8f BTC | %.f $", spent, t.Time.Format("2006 Jan 2"), t.BTC(), t.ExchangeRate())
 }
 
-func (t *Transaction) LoadPrice() float64 {
+func (t *Transaction) ExchangeRate() float64 {
+	if t.exchangeRate == 0 {
+		t.exchangeRate = t.loadPrice()
+	}
+	return t.exchangeRate
+}
+
+func (t *Transaction) loadPrice() float64 {
 	return GetCoinbaseSpotPrice(t.Time)
 }
 
@@ -40,11 +48,13 @@ type Wallet struct {
 	address      string
 	balance      int64
 	transactions []Transaction
+	invested     float64
 }
 
 func (w *Wallet) String() string {
 	str := fmt.Sprintf("Balance: %.8f BTC\n", w.BTC())
-	for _, t := range w.transactions {
+	for i, _ := range w.transactions {
+		t := &w.transactions[i]
 		str += "\n"
 		str += fmt.Sprintf("%s", t.String())
 	}
@@ -56,9 +66,18 @@ func (w *Wallet) BTC() float64 {
 }
 
 func (w *Wallet) InvestedAmount() float64 {
+	if w.invested > 0 {
+		return w.invested
+	}
+	w.invested = w.loadInvestedAmount()
+	return w.invested
+}
+
+func (w *Wallet) loadInvestedAmount() float64 {
 	var amount float64
-	for _, t := range w.transactions {
-		price := t.LoadPrice()
+	for i, _ := range w.transactions {
+		t := &w.transactions[i]
+		price := t.ExchangeRate()
 		amount += float64(t.amount) * price / Satoshi
 	}
 	return amount

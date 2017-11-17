@@ -48,6 +48,7 @@ type responseStruct struct {
 }
 
 func loadData(url string) (float64, error) {
+	log.Output(1, fmt.Sprintf("Coinbase Request: %s\n", url))
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Panic("Received error ", err.Error())
