@@ -3,4 +3,6 @@
 
 TODO:
 - [ ] - Add ability to load wallet histoty
-  - [ ] - Load Data from BlockChain.info
+  - [x] - Load Data from BlockChain.info
+  - [x] - Find Wallet Transactions
+  - [ ] - Load bitcoin prices for transaction dates

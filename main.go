@@ -31,6 +31,7 @@ func main() {
 	bot.HandleFunc("/add {amount}", AddHandler)
 	bot.HandleFunc("/withdraw {amount}", WithdrawHandler)
 	bot.HandleFunc("/exchange {amount}", ExchangeRateHandler)
+	bot.HandleFunc("/wallet {address}", WalletRateHandler)
 
 	bot.HandleFunc("/substrace", HiHandler)
 
@@ -104,6 +105,14 @@ func ExchangeRateHandler(message *tbot.Message) {
 	}
 	exchangeRate = amount
 	message.Replyf("Wallet buying exchange rate: %.3f$", exchangeRate)
+}
+
+func WalletRateHandler(message *tbot.Message) {
+	address, ok := message.Vars["address"]
+	if !ok {
+		log.Panicf("Received: %s, wrong amount", message.Data)
+	}
+	message.Reply(providers.LoadWallet(address).String())
 }
 
 func Roi(sellPrice float64) float64 {
